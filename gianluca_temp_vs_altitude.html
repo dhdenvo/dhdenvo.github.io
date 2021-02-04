@@ -1,0 +1,109 @@
+<!-- Cold Temperature Corrections for Gianluca By David D -->
+<!-- Heads up, this code is very sloppy, but it works -->
+<!-- Please ignore the lack of comments if you are looking at it, I did this in 1.5 hours -->
+
+<html>
+<head>
+  <title>Gianluca's Cold Temperature Correction Calculator</title>
+  <link rel="apple-touch-icon" href="http://drive.google.com/uc?export=view&id=10QHeC2Ns1fVcPitwuIHiPDYHz0wWAd7u">
+</head>
+
+<body>
+
+<script>
+
+const temp_chart = [10, 0, -10, -20, -30, -40, -50].reverse();
+const alt_chart = [200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 4000, 5000];
+const correction_chart = [
+  [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 20, 30, 40, 60, 80, 100],
+  [20, 20, 30, 30, 40, 40, 50, 50, 60, 90, 120, 170, 230, 290],
+  [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 290, 390, 490],
+  [30, 50, 60, 70, 90, 100, 120, 130, 140, 210, 280, 380, 570, 760, 950],
+  [40, 60, 80, 100, 120, 130, 150, 170, 190, 280, 380, 570, 760, 950],
+  [50, 80, 100, 120, 150, 170, 190, 220, 240, 360, 480, 720, 970, 1210],
+  [60, 90, 120, 150, 180, 210, 240, 270, 300, 540, 600, 890, 1190, 1500]
+].reverse();
+
+function findValues(chart, value) {
+	prevValue = NaN;
+	result = NaN;
+	for (i = 0; i < chart.length; i++) {
+		if (chart[i] == value) {
+			return [true, i, i, 0];
+		} else if (chart[i] > value) {
+			result = i;
+			break;
+		} else {
+			prevValue = i;
+		}
+	}
+	if (isNaN(prevValue) || isNaN(result)) {
+		return [false];
+	}
+	ratio = (value - chart[prevValue]) / (chart[result] - chart[prevValue]);
+	return [true, prevValue, result, ratio];
+}
+
+function calculateCorrection(temp, planeAlt, portAlt) {
+	alt = planeAlt - portAlt;
+	
+	temps = findValues(temp_chart, temp);
+	alts = findValues(alt_chart, alt);
+	
+	if (temps[0] == false || alts[0] == false) {
+		return "Invalid Values";
+	}
+	
+	topLeft = correction_chart[temps[1]][alts[1]] * (1 - temps[3]) * (1 - alts[3]);
+	topRight = correction_chart[temps[1]][alts[2]] * (1 - temps[3]) * alts[3];
+	botLeft = correction_chart[temps[2]][alts[1]] * temps[3] * (1 - alts[3]);
+	botRight = correction_chart[temps[2]][alts[2]] * temps[3] * alts[3];
+	
+	correction = topLeft + topRight + botLeft + botRight;
+	if (isNaN(correction)) {
+		return "No Value in Chart";
+	}
+	
+	console.log(correction);
+	
+	return correction;
+}
+
+function correctionButtonPushed() {
+	temp = document.getElementsByName("Temp")[0].value;
+	planeAlt = document.getElementsByName("PlaneAlt")[0].value;
+	portAlt = document.getElementsByName("PortAlt")[0].value;
+	
+	temp = parseInt(temp);
+	planeAlt = parseInt(planeAlt);
+	portAlt = parseInt(portAlt);
+	
+	if (isNaN(temp) || isNaN(planeAlt) || isNaN(portAlt)) {
+		console.log("Invalid Input")
+		document.getElementById("correction").innerHTML = "Invalid Input";
+		return;
+	}
+	
+	document.getElementById("correction").innerHTML = calculateCorrection(temp, planeAlt, portAlt);
+}
+
+</script>
+
+<h1> Cold Temperature Correction Calculator</h1>
+Outside Air Temperature (in &deg C): <br>
+<input type="text" name="Temp" id="Temperature" >
+<br> <br>
+Altitude of Plane (in Feet): <br>
+<input type="text" name="PlaneAlt" id="Altitude of Plane" >
+<br> <br>
+Altitude of Airport (in Feet): <br>
+<input type="text" name="PortAlt" id="Altitude of Airport" >
+<br> <br>
+<button onclick="javascript:correctionButtonPushed()" value="Submit" id="Submit"> Submit </button>
+
+<br> <br>
+The correction is (in Feet):
+<p id="correction"></p>
+
+</body>
+</html>
